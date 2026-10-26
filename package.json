@@ -1,0 +1,16 @@
+{
+  "name": "realtime-wheel",
+  "version": "1.0.0",
+  "description": "Real-time synchronized spinning wheel for multiple viewers",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

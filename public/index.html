@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Lucky Wheel | วงล้อสุ่มสดพร้อมกันทุกคน</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header / Nav -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo">
+        <span class="logo-icon">🎡</span>
+        <div class="logo-text">
+          <h1>SyncWheel</h1>
+          <span class="subtext">Real-Time Synchronized Wheel</span>
+        </div>
+      </div>
+      
+      <div class="room-pill">
+        <span class="room-label">ห้อง:</span>
+        <strong id="currentRoomLabel">main</strong>
+        <button id="copyLinkBtn" class="btn-icon" title="คัดลอกลิงก์ชวนเพื่อนดูสด">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="btn-text">คัดลอกลิงก์</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <!-- Live Viewer Counter -->
+      <div class="badge-live" id="liveBadge">
+        <span class="live-dot"></span>
+        <span class="live-text">กำลังดูสด:</span>
+        <strong id="viewerCount">1</strong>
+        <span class="live-unit">คน</span>
+      </div>
+
+      <!-- Sync Status -->
+      <div class="badge-status online" id="statusBadge" title="สถานะการเชื่อมต่อกับเซิร์ฟเวอร์">
+        <span class="status-indicator"></span>
+        <span id="statusText">เชื่อมต่อแล้ว</span>
+      </div>
+
+      <!-- Audio Mute Button -->
+      <button id="soundToggleBtn" class="btn-icon" title="เปิด/ปิดเสียง">
+        <span id="soundIcon">🔊</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-layout">
+    <!-- Left: Wheel Stage -->
+    <section class="wheel-stage">
+      <div class="wheel-container">
+        <!-- Top Pointer Needle -->
+        <div class="pointer-wrapper">
+          <div class="pointer-needle"></div>
+        </div>
+
+        <!-- Wheel Canvas -->
+        <canvas id="wheelCanvas" width="600" height="600"></canvas>
+
+        <!-- Center Spin Button -->
+        <button id="centerSpinBtn" class="center-spin-btn">
+          <span class="spin-btn-label">หมุนเลย!</span>
+          <span class="spin-btn-sub">SPIN</span>
+        </button>
+      </div>
+
+      <!-- Spin Info / Sub-bar -->
+      <div class="wheel-footer-bar">
+        <div class="status-callout" id="actionStatus">
+          พร้อมหมุน — ทุกคนที่เปิดลิงก์นี้จะเห็นวงล้อหมุนพร้อมกันแบบ Real-time
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Sidebar Controls -->
+    <aside class="sidebar-panel">
+      <!-- Tab Navigation -->
+      <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="items">🎯 รายการ (<span id="itemCount">0</span>)</button>
+        <button class="tab-btn" data-tab="history">🏆 ประวัติผู้ชนะ</button>
+        <button class="tab-btn" data-tab="room">⚙️ ตั้งค่าห้อง</button>
+      </nav>
+
+      <!-- TAB 1: Items Manager -->
+      <div class="tab-pane active" id="tabItems">
+        <div class="pane-header">
+          <h3>รายการสุ่มในวงล้อ</h3>
+          <div class="quick-actions">
+            <button id="shuffleBtn" class="btn-sm" title="สลับตำแหน่ง">🔀 สลับ</button>
+            <button id="resetDefaultsBtn" class="btn-sm" title="ใช้รายการเริ่มต้น">🔄 ค่าเริ่มต้น</button>
+          </div>
+        </div>
+
+        <!-- Add Single Item -->
+        <div class="add-item-bar">
+          <input type="text" id="newItemInput" placeholder="พิมพ์ชื่อรายการ..." maxlength="60">
+          <button id="addItemBtn" class="btn-primary">เพิ่ม</button>
+        </div>
+
+        <!-- Fast Bulk Add Toggle -->
+        <details class="bulk-accordion">
+          <summary>📋 วางข้อความหลายบรรทัดพร้อมกัน (Bulk Add)</summary>
+          <div class="bulk-content">
+            <textarea id="bulkItemsInput" rows="4" placeholder="พิมพ์ชื่อ 1 รายการต่อ 1 บรรทัด เช่น:&#10;สมชาย&#10;สมหญิง&#10;สมศักดิ์"></textarea>
+            <div class="bulk-buttons">
+              <button id="bulkAppendBtn" class="btn-secondary">เพิ่มต่อท้าย</button>
+              <button id="bulkReplaceBtn" class="btn-danger-outline">แทนที่ทั้งหมด</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- Scrollable Items List -->
+        <div class="items-list-container" id="itemsList">
+          <!-- Dynamic item rows inserted by JS -->
+        </div>
+      </div>
+
+      <!-- TAB 2: Winner History -->
+      <div class="tab-pane" id="tabHistory">
+        <div class="pane-header">
+          <h3>ประวัติการสุ่มที่ผ่านมา</h3>
+          <button id="clearHistoryBtn" class="btn-sm btn-danger-outline">ล้างประวัติ</button>
+        </div>
+        <div class="history-list-container" id="historyList">
+          <div class="empty-state">ยังไม่มีการสุ่มในรอบนี้</div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Room & Settings -->
+      <div class="tab-pane" id="tabRoom">
+        <div class="pane-header">
+          <h3>การตั้งค่าและห้อง</h3>
+        </div>
+
+        <div class="setting-group">
+          <label for="roomInput">เปลี่ยนห้องสุ่ม (Room ID):</label>
+          <div class="input-inline">
+            <input type="text" id="roomInput" placeholder="main" maxlength="20">
+            <button id="joinRoomBtn" class="btn-secondary">ย้ายห้อง</button>
+          </div>
+          <small class="hint-text">ส่งลิงก์ห้องให้เพื่อน ทุกคนในห้องเดียวกันจะเห็นเหมือนกันทันที</small>
+        </div>
+
+        <div class="setting-group">
+          <label for="spinDuration">เวลาในการหมุน:</label>
+          <div class="range-inline">
+            <input type="range" id="spinDuration" min="4" max="10" step="0.5" value="6.5">
+            <span id="durationVal">6.5 วินาที</span>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label for="soundVolume">ระดับเสียง:</label>
+          <div class="range-inline">
+            <input type="range" id="soundVolume" min="0" max="1" step="0.05" value="0.7">
+            <span id="volumeVal">70%</span>
+          </div>
+        </div>
+
+        <div class="setting-group info-card">
+          <h4>💡 วิธีให้เพื่อนดูสด</h4>
+          <p>1. กดปุ่ม <strong>"คัดลอกลิงก์"</strong> ด้านบน</p>
+          <p>2. ส่งลิงก์ให้เพื่อนผ่าน LINE, Discord, หรือ Facebook</p>
+          <p>3. เมื่อกดหมุน ทุกคนที่เปิดจออยู่จะเห็นวงล้อหมุนและหยุดที่ผลเดียวกันพร้อมกันวินาทีต่อวินาที</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Winner Modal Popup -->
+  <div class="modal-overlay" id="winnerModal">
+    <div class="modal-card">
+      <div class="modal-confetti-badge">🎉 ยินดีด้วย! ผู้ชนะคือ 🎉</div>
+      <h2 id="modalWinnerName" class="modal-winner-name">รางวัลที่ 1</h2>
+      <div class="modal-actions">
+        <button id="modalRemoveBtn" class="btn-modal btn-remove">ลบชื่อนี้ออกจากวงล้อ</button>
+        <button id="modalCloseBtn" class="btn-modal btn-keep">เก็บไว้แล้วปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas (Fullscreen) -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Scripts -->
+  <script src="audio.js"></script>
+  <script src="confetti.js"></script>
+  <script src="wheel.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
